@@ -1480,18 +1480,17 @@ class WrapClassifier():
     def __init__(self, learner):
         self.cc = None
         self.nc = None
+        self.calibrated = False
         self.learner = learner
         self.seed = None
-        self.calibrated_ = False
-        self.alphas_ = None
 
     def __repr__(self):
-        if self.calibrated_:
+        if self.calibrated:
             return (f"WrapClassifier(learner={self.learner}, "
-                    f"calibrated={self.calibrated_}, "
+                    f"calibrated={self.calibrated}, "
                     f"predictor={self.cc})")
         else:
-            return f"WrapClassifier(learner={self.learner}, calibrated={self.calibrated_})"
+            return f"WrapClassifier(learner={self.learner}, calibrated={self.calibrated})"
         
     def fit(self, X, y, **kwargs):
         """
@@ -1725,7 +1724,7 @@ class WrapClassifier():
                 self.cc.fit(self.alphas_, bins=bins)
             else:
                 self.cc.fit(self.alphas_)
-        self.calibrated_ = True
+        self.calibrated = True
         if seed is not None:
             np.random.set_state(random_state)
         return self
@@ -1929,7 +1928,7 @@ class WrapClassifier():
         """
         if isinstance(y, pd.Series):
             y = y.values
-        if not self.calibrated_:
+        if not self.calibrated:
             raise RuntimeError(("evaluate requires that calibrate has been"
                                 "called first"))
         else:
