@@ -1480,17 +1480,18 @@ class WrapClassifier():
     def __init__(self, learner):
         self.cc = None
         self.nc = None
-        self.calibrated = False
         self.learner = learner
         self.seed = None
+        self.calibrated_ = False
+        self.alphas_ = None
 
     def __repr__(self):
-        if self.calibrated:
+        if self.calibrated_:
             return (f"WrapClassifier(learner={self.learner}, "
-                    f"calibrated={self.calibrated}, "
+                    f"calibrated={self.calibrated_}, "
                     f"predictor={self.cc})")
         else:
-            return f"WrapClassifier(learner={self.learner}, calibrated={self.calibrated})"
+            return f"WrapClassifier(learner={self.learner}, calibrated={self.calibrated_})"
         
     def fit(self, X, y, **kwargs):
         """
@@ -1710,21 +1711,21 @@ class WrapClassifier():
         self.mc = mc
         self.class_cond = class_cond
         if oob:
-            alphas = nc(self.learner.oob_decision_function_, self.learner.classes_, y)
+            self.alphas_ = nc(self.learner.oob_decision_function_, self.learner.classes_, y)
         else:
-            alphas = nc(self.learner.predict_proba(X), self.learner.classes_, y)
+            self.alphas_ = nc(self.learner.predict_proba(X), self.learner.classes_, y)
         if class_cond:
-            self.cc.fit(alphas, bins=y)
+            self.cc.fit(self.alphas_, bins=y)
         else:
             if isinstance(mc, MondrianCategorizer):
                 bins = mc.apply(X)
-                self.cc.fit(alphas, bins=bins)
+                self.cc.fit(self.alphas_, bins=bins)
             elif mc is not None:
                 bins = mc(X)
-                self.cc.fit(alphas, bins=bins)
+                self.cc.fit(self.alphas_, bins=bins)
             else:
-                self.cc.fit(alphas)
-        self.calibrated = True
+                self.cc.fit(self.alphas_)
+        self.calibrated_ = True
         if seed is not None:
             np.random.set_state(random_state)
         return self
@@ -1928,7 +1929,7 @@ class WrapClassifier():
         """
         if isinstance(y, pd.Series):
             y = y.values
-        if not self.calibrated:
+        if not self.calibrated_:
             raise RuntimeError(("evaluate requires that calibrate has been"
                                 "called first"))
         else:
